@@ -1,12 +1,147 @@
 <!doctype html>
-<html lang="he">
+<html lang="he" dir="rtl">
 <head>
-  <meta charset="utf-8">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Doomsday Master</title>
+
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f5f7fa;
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+    }
+
+    h1 {
+      margin-top: 10px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      max-width: 420px;
+      margin: 20px auto;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+    }
+
+    .date {
+      font-size: 26px;
+      font-weight: bold;
+      margin: 15px 0;
+    }
+
+    .buttons {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    button {
+      padding: 12px;
+      font-size: 16px;
+      border-radius: 10px;
+      border: none;
+      background: #007aff;
+      color: white;
+      cursor: pointer;
+    }
+
+    button:active {
+      transform: scale(0.97);
+    }
+
+    .info {
+      margin-top: 15px;
+      font-size: 15px;
+      color: #333;
+    }
+
+    .score {
+      font-size: 18px;
+      margin-top: 10px;
+    }
+
+    .timer {
+      font-size: 16px;
+      color: #555;
+    }
+  </style>
 </head>
+
 <body>
-  <h1>🎉 זה עובד!</h1>
-  <p>GitHub Pages מציג index.html</p>
+
+<h1>🧠 Doomsday Master</h1>
+<div class="timer">זמן: <span id="time">60</span> שניות</div>
+
+<div class="card">
+  <div class="date" id="question">---</div>
+
+  <div class="buttons">
+    <button onclick="answer(0)">ראשון</button>
+    <button onclick="answer(1)">שני</button>
+    <button onclick="answer(2)">שלישי</button>
+    <button onclick="answer(3)">רביעי</button>
+    <button onclick="answer(4)">חמישי</button>
+    <button onclick="answer(5)">שישי</button>
+    <button onclick="answer(6)">שבת</button>
+  </div>
+
+  <div class="info" id="feedback"></div>
+  <div class="score">ניקוד: <span id="score">0</span></div>
+</div>
+
+<script>
+  const days = ["ראשון","שני","שלישי","רביעי","חמישי","שישי","שבת"];
+  let score = 0;
+  let time = 60;
+  let currentAnswer = 0;
+  let currentDate = "";
+
+  function randomDate() {
+    const year = 1900 + Math.floor(Math.random() * 200);
+    const month = 1 + Math.floor(Math.random() * 12);
+    const day = 1 + Math.floor(Math.random() * 28);
+    return new Date(year, month - 1, day);
+  }
+
+  function newQuestion() {
+    const d = randomDate();
+    currentAnswer = d.getDay();
+    currentDate = `${d.getDate()}.${d.getMonth()+1}.${d.getFullYear()}`;
+    document.getElementById("question").innerText = currentDate;
+    document.getElementById("feedback").innerText = "";
+  }
+
+  function answer(choice) {
+    const correct = currentAnswer;
+    if (choice === correct) {
+      score += 10;
+      document.getElementById("feedback").innerText =
+        `✅ נכון! ${currentDate} הוא יום ${days[correct]}`;
+    } else {
+      document.getElementById("feedback").innerText =
+        `❌ לא נכון. ${currentDate} הוא יום ${days[correct]}`;
+    }
+    document.getElementById("score").innerText = score;
+    setTimeout(newQuestion, 1200);
+  }
+
+  setInterval(() => {
+    time--;
+    document.getElementById("time").innerText = time;
+    if (time <= 0) {
+      alert("⏱️ נגמר הזמן! ניקוד סופי: " + score);
+      location.reload();
+    }
+  }, 1000);
+
+  newQuestion();
+</script>
+
 </body>
 </html>
 
