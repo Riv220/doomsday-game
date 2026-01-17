@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Doomsday Master (Web)</title>
+  <title>Doomsday Master</title>
   <style>
     :root{
       --bg:#f4f6f9;
@@ -180,6 +180,7 @@
       padding:12px;
       font-size:14px;
       line-height:1.4;
+      text-align:right;
     }
     .nextBtn{
       display:none;
@@ -192,7 +193,6 @@
       border-radius:12px;
     }
 
-    /* Modal */
     .modalBackdrop{
       display:none;
       position:fixed;
@@ -224,10 +224,9 @@
       padding:14px;
       font-size:14px;
       line-height:1.45;
+      text-align:right;
     }
-    .modalBody h3{
-      margin:8px 0 6px;
-    }
+    .modalBody h3{ margin:8px 0 6px; }
     .modalClose{
       background:#111827;
       color:#fff;
@@ -235,10 +234,7 @@
       padding:8px 10px;
       font-weight:900;
     }
-    .small{
-      color:var(--muted);
-      font-size:12px;
-    }
+    .small{ color:var(--muted); font-size:12px; }
     @media (max-width:520px){
       .grid{ grid-template-columns: repeat(2, 1fr); }
       .question{ font-size:30px; }
@@ -247,7 +243,7 @@
 </head>
 <body>
   <div class="wrap">
-    <div class="title">Doomsday Master (Web)</div>
+    <div class="title">Doomsday Master 🧠</div>
 
     <div class="topbar">
       <button id="btnCheat" class="btn dark">📜 טבלה</button>
@@ -284,11 +280,10 @@
     <button class="btn nextBtn" id="btnNext">המשך</button>
 
     <div class="small" style="margin-top:10px;">
-      טיפ: באייפון אפשר לשמור למסך הבית: Share → Add to Home Screen.
+      באייפון: Share → Add to Home Screen
     </div>
   </div>
 
-  <!-- Modal: Cheat sheet -->
   <div class="modalBackdrop" id="modalBackdrop">
     <div class="modal" role="dialog" aria-modal="true">
       <div class="modalHeader">
@@ -301,38 +296,32 @@
   </div>
 
 <script>
-  // ---------- Display / constants ----------
-  const DISPLAY_NAMES = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"]; // Sunday..Saturday
+  const DISPLAY_NAMES = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"];
   const MONTH_NAMES = ["", "ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי", "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"];
 
-  // We will use JS UTC weekday indexing: getUTCDay() => 0 Sunday .. 6 Saturday (perfect match to DISPLAY_NAMES)
   function isLeapYear(y){
     return (y % 4 === 0 && y % 100 !== 0) || (y % 400 === 0);
   }
   function utcDate(y, m, d){
-    // m: 1..12
-    return new Date(Date.UTC(y, m-1, d, 12, 0, 0)); // noon UTC to avoid edge cases
+    return new Date(Date.UTC(y, m-1, d, 12, 0, 0));
   }
   function addDaysUTC(dt, days){
-    const ms = dt.getTime() + days * 86400000;
-    return new Date(ms);
+    return new Date(dt.getTime() + days * 86400000);
   }
   function weekdayUTC(dt){
-    return dt.getUTCDay(); // 0..6
+    return dt.getUTCDay(); // 0..6 (Sun..Sat)
   }
 
-  // ---------- Doomsday (Anchor Day) logic ----------
-  // Classic century anchors in doomsday algorithm (0=Sunday..6=Saturday):
-  // 1800s -> Friday(5), 1900s -> Wednesday(3), 2000s -> Tuesday(2), 2100s -> Sunday(0)
+  // Century anchors (classic doomsday):
+  // 1800s Friday(5), 1900s Wednesday(3), 2000s Tuesday(2), 2100s Sunday(0)
   function centuryAnchorClassic(year){
     const century = Math.floor(year / 100) * 100;
     const mod = (century % 400 + 400) % 400;
-    if (mod === 0) return 2;   // 1600/2000 -> Tuesday
-    if (mod === 100) return 0; // 1700/2100 -> Sunday
-    if (mod === 200) return 5; // 1800/2200 -> Friday
-    return 3;                  // 1900/2300 -> Wednesday
+    if (mod === 0) return 2;
+    if (mod === 100) return 0;
+    if (mod === 200) return 5;
+    return 3;
   }
-
   function yearOffsetClassic(year){
     const yy = year % 100;
     const a = Math.floor(yy / 12);
@@ -340,43 +329,19 @@
     const c = Math.floor(b / 4);
     return (a + b + c) % 7;
   }
-
-  // Returns doomsday weekday index (0=Sunday..6=Saturday)
   function doomsdayOfYear(year){
     return (centuryAnchorClassic(year) + yearOffsetClassic(year)) % 7;
   }
 
-  // Month anchor date (doomsday dates) for explanation/hints
   function monthAnchorDay(year, month){
     const leap = isLeapYear(year);
-    // Standard doomsday dates
-    // Jan: 3 (or 4 in leap), Feb: 28 (or 29 in leap), Mar: 14, Apr: 4, May: 9, Jun: 6,
-    // Jul: 11, Aug: 8, Sep: 5, Oct: 10, Nov: 7, Dec: 12
     if (month === 1) return leap ? 4 : 3;
     if (month === 2) return leap ? 29 : 28;
     const map = {3:14,4:4,5:9,6:6,7:11,8:8,9:5,10:10,11:7,12:12};
     return map[month];
   }
 
-  function monthAnchorLabel(month){
-    const map = {
-      1:"3 בינואר (או 4 בשנה מעוברת)",
-      2:"28 בפברואר (או 29 בשנה מעוברת)",
-      3:"פאי 3.14",
-      4:"4/4",
-      5:"5/9",
-      6:"6/6",
-      7:"7-Eleven (11/7 או 7/11)",
-      8:"8/8",
-      9:"9-5 (5/9 או 9/5)",
-      10:"10/10",
-      11:"7-Eleven (11/7 או 7/11)",
-      12:"12/12"
-    };
-    return map[month] || "";
-  }
-
-  // ---------- UI elements ----------
+  // UI refs
   const lblCoins = document.getElementById("lblCoins");
   const lblStreak = document.getElementById("lblStreak");
   const progressBar = document.getElementById("progressBar");
@@ -394,7 +359,7 @@
   const btnCheat = document.getElementById("btnCheat");
   const modalBody = document.getElementById("modalBody");
 
-  // ---------- Game state ----------
+  // Game state
   let coins = 10;
   let streak = 0;
 
@@ -402,9 +367,7 @@
   let timeLeft = ROUND_TIME;
   let timerId = null;
 
-  // current_data similar to your Python structure
-  // { type: 'year'|'anchor'|'full', year, ansDayIdx, targetDateUTC? }
-  let current = null;
+  let current = null; // {type, year, ansDayIdx, targetUTC?}
   let locked = false;
 
   function renderCheatSheet(){
@@ -417,20 +380,21 @@
         <li>2100–2199: <b>ראשון</b></li>
       </ul>
       <hr>
-      <h3 style="color:#27ae60;">2) נוסחת השנה (שיטת ה-12)</h3>
+      <h3 style="color:#27ae60;">2) שיטת ה-12</h3>
       <ol>
-        <li>כמה 12 נכנסים?</li>
-        <li>מה השארית?</li>
-        <li>כמה 4 נכנסים בשארית?</li>
+        <li>yy = שתי ספרות אחרונות</li>
+        <li>a = ⌊yy/12⌋</li>
+        <li>b = yy mod 12</li>
+        <li>c = ⌊b/4⌋</li>
+        <li>סה״כ = a+b+c (mod 7) + עוגן המאה</li>
       </ol>
-      <p>מחברים: <b>a + b + c</b> ומוסיפים לעוגן המאה (mod 7).</p>
       <hr>
-      <h3 style="color:#c0392b;">3) עוגני החודשים</h3>
+      <h3 style="color:#c0392b;">3) עוגני חודשים</h3>
       <p>
         שנה רגילה: 1/3, 2/28, 3/14, 4/4, 5/9, 6/6, 7/11, 8/8, 9/5, 10/10, 11/7, 12/12<br>
-        שנה מעוברת: 1/4, 2/29, (השאר אותו דבר)
+        שנה מעוברת: 1/4, 2/29 (השאר אותו דבר)
       </p>
-      <div class="small">המשחק תמיד מראה פתרון והסבר אחרי כל סיבוב.</div>
+      <div class="small">אחרי כל שאלה מוצג פתרון והסבר – גם אם צדקת.</div>
     `;
   }
 
@@ -488,7 +452,6 @@
     btnNext.style.display = "none";
     hintBox.style.display = "none";
     hintBox.innerHTML = "";
-    // reset day buttons style
     const buttons = daysGrid.querySelectorAll("button.dayBtn");
     buttons.forEach(b => {
       b.classList.remove("correct","wrong");
@@ -507,7 +470,6 @@
     }
   }
 
-  // ---------- Round generation ----------
   function randInt(a,b){
     return Math.floor(Math.random()*(b-a+1))+a;
   }
@@ -521,14 +483,12 @@
     const year = randInt(1950, 2050);
 
     if (mode === 0){
-      // Year training: guess doomsday (anchor day) of the year
-      const ans = doomsdayOfYear(year); // 0..6
+      const ans = doomsdayOfYear(year);
       lblContext.innerHTML = "חשב את יום העוגן השנתי:";
       lblQuestion.textContent = String(year);
       current = { type: "year", year: year, ansDayIdx: ans };
 
     } else if (mode === 1){
-      // Anchor training: given year anchor name, ask date near a month-anchor
       const anchorIdx = doomsdayOfYear(year);
       const month = randInt(1,12);
       const baseDay = monthAnchorDay(year, month);
@@ -544,7 +504,6 @@
       current = { type: "anchor", year: year, targetUTC: target, ansDayIdx: weekdayUTC(target) };
 
     } else {
-      // Full training: random date
       const y = year;
       const start = utcDate(y,1,1);
       const d = addDaysUTC(start, randInt(0, 364));
@@ -556,7 +515,6 @@
     startTimer();
   }
 
-  // ---------- Hint / Explanation ----------
   function useHint(){
     if (locked) return;
     if (coins < 10) return;
@@ -567,7 +525,7 @@
 
     const y = current.year;
     if (current.type === "year"){
-      const cen = centuryAnchorClassic(y); // 0..6
+      const cen = centuryAnchorClassic(y);
       const cenName = DISPLAY_NAMES[cen];
 
       const yy = y % 100;
@@ -577,11 +535,11 @@
       const total = dozens + rem + fours;
 
       hintBox.innerHTML =
-        `<b>הרמז שלך ל-${yy}:</b><br>` +
-        `• ${dozens} תריסרים, ${rem} שארית, ${fours} רביעיות.<br>` +
-        `• סה"כ תוספת = <b>${total} ימים</b> (mod 7 = ${total % 7}).<br>` +
+        `<b>רמז לשנת ${y}:</b><br>` +
+        `• yy=${yy} → ${dozens} תריסרים, שארית ${rem}, רביעיות ${fours}.<br>` +
+        `• תוספת = ${total} (mod 7 = ${total % 7}).<br>` +
         `• עוגן המאה = <b>${cenName}</b>.<br>` +
-        `<b>התרגיל:</b> ${cenName} + ${total % 7} = ?`;
+        `<b>משימה:</b> ${cenName} + ${total % 7} = ?`;
 
     } else {
       const yearAnchor = doomsdayOfYear(y);
@@ -593,11 +551,11 @@
       const diff = t.getUTCDate() - mAnchor;
 
       hintBox.innerHTML =
-        `<b>הרמז שלך:</b><br>` +
-        `• עוגן השנה יצא: <b>${yearAnchorName}</b>.<br>` +
-        `• עוגן החודש הוא ה-<b>${mAnchor}</b>.<br>` +
-        `• התאריך רחוק ב: <b>${diff >= 0 ? "+" : ""}${diff} ימים</b>.<br>` +
-        `<b>התרגיל:</b> ${yearAnchorName} ${diff >= 0 ? "+" : ""}${diff} ימים = ?`;
+        `<b>רמז:</b><br>` +
+        `• עוגן השנה: <b>${yearAnchorName}</b>.<br>` +
+        `• עוגן החודש: יום <b>${mAnchor}</b>.<br>` +
+        `• הפרש: <b>${diff >= 0 ? "+" : ""}${diff}</b> ימים.<br>` +
+        `<b>משימה:</b> ${yearAnchorName} ${diff >= 0 ? "+" : ""}${diff} ימים = ?`;
     }
   }
 
@@ -619,14 +577,12 @@
 
     if (current.type === "year"){
       return (
-        `חישוב לשנת ${y}:<br>` +
-        `1. עוגן המאה (${Math.floor(y/100)}00): <b>${cenName}</b>.<br>` +
-        `2. שיטת ה-12 על ${yy}:<br>` +
-        `&nbsp;&nbsp;• 12 נכנס: <b>${dozens}</b> פעמים.<br>` +
-        `&nbsp;&nbsp;• שארית: <b>${rem}</b>.<br>` +
-        `&nbsp;&nbsp;• 4 נכנס בשארית: <b>${fours}</b> פעמים.<br>` +
-        `3. סה"כ תוספת: ${dozens} + ${rem} + ${fours} = ${total} (שזה ${total%7} ימים).<br>` +
-        `4. תוצאה: ${cenName} + ${total%7} = <b>${yearAnchorName}</b>.`
+        `פתרון: <b>${y} → ${yearAnchorName}</b><br><br>` +
+        `1) עוגן המאה: <b>${cenName}</b><br>` +
+        `2) שיטת ה-12 על ${yy}:<br>` +
+        `• a=⌊${yy}/12⌋=${dozens}, b=${rem}, c=⌊${rem}/4⌋=${fours}<br>` +
+        `3) a+b+c=${total} → mod7=${total%7}<br>` +
+        `4) ${cenName} + ${total%7} = <b>${yearAnchorName}</b>`
       );
     }
 
@@ -636,29 +592,26 @@
     const diff = t.getUTCDate() - mAnchor;
 
     const intro = (current.type === "full")
-      ? `1. חישוב שנה: עוגן ${y} יצא <b>${yearAnchorName}</b>.<br>`
+      ? `1) קודם מחשבים עוגן שנה: <b>${y} → ${yearAnchorName}</b><br>`
       : "";
 
     return (
+      `פתרון: <b>${t.getUTCDate()}.${m}.${y} → ${correctName}</b><br><br>` +
       `${intro}` +
-      `2. עוגן החודש: ה-${mAnchor} בחודש נופל תמיד על ${yearAnchorName}.<br>` +
-      `3. ההפרש: מ-${mAnchor} עד ה-${t.getUTCDate()} יש ${diff >= 0 ? "+" : ""}${diff} ימים.<br>` +
-      `4. חישוב סופי: ${yearAnchorName} ${diff >= 0 ? "+" : ""}${diff} ימים = <b>${correctName}</b>.`
+      `2) עוגן חודש: ה-${mAnchor}.${m} נופל על ${yearAnchorName}<br>` +
+      `3) הפרש: ${t.getUTCDate()} − ${mAnchor} = ${diff >= 0 ? "+" : ""}${diff}<br>` +
+      `4) ${yearAnchorName} ${diff >= 0 ? "+" : ""}${diff} ימים = <b>${correctName}</b>`
     );
   }
 
-  // ---------- Answer check ----------
   function checkAnswer(userIdx){
     if (locked) return;
-    if (!current) return;
-
     stopTimer();
     lockButtons(true);
 
     const correctIdx = current.ansDayIdx;
     const isCorrect = (userIdx === correctIdx);
 
-    // paint buttons
     const buttons = daysGrid.querySelectorAll("button.dayBtn");
     buttons.forEach((b, idx) => {
       if (idx === correctIdx) b.classList.add("correct");
@@ -670,24 +623,21 @@
     if (isCorrect){
       coins += modeLevel;
       streak += 1;
-      header = "✅ מצוין!";
+      header = "✅ נכון!";
     } else {
       streak = 0;
-      header = "❌ לא...";
+      header = "❌ לא נכון";
     }
     updateLabels();
 
     const expl = detailedExplanation(correctIdx);
-    feedbackBox.innerHTML = `<b>${header}</b><br>${expl}`;
+    feedbackBox.innerHTML = `<b>${header}</b><br><br>${expl}`;
     feedbackBox.style.display = "block";
     btnNext.style.display = "block";
   }
 
   function handleTimeout(){
-    if (!current) return;
-    // On timeout: reveal correct and show explanation (no "wrong button" highlight)
     lockButtons(true);
-
     const correctIdx = current.ansDayIdx;
     const buttons = daysGrid.querySelectorAll("button.dayBtn");
     buttons.forEach((b, idx) => {
@@ -698,12 +648,11 @@
     updateLabels();
 
     const expl = detailedExplanation(correctIdx);
-    feedbackBox.innerHTML = `<b>⏱️ נגמר הזמן</b><br>${expl}`;
+    feedbackBox.innerHTML = `<b>⏱️ נגמר הזמן</b><br><br>${expl}`;
     feedbackBox.style.display = "block";
     btnNext.style.display = "block";
   }
 
-  // ---------- Events ----------
   btnHint.addEventListener("click", useHint);
   btnNext.addEventListener("click", startNewRound);
   modeSelect.addEventListener("change", () => {
@@ -721,7 +670,6 @@
     if (e.target === modalBackdrop) modalBackdrop.style.display = "none";
   });
 
-  // ---------- Init ----------
   buildDaysButtons();
   updateLabels();
   startNewRound();
