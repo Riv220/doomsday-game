@@ -13,7 +13,7 @@
     }
     *{ box-sizing:border-box; }
     body{ margin:0; font-family:system-ui,-apple-system,Segoe UI,Arial; background:var(--bg); color:var(--text); }
-    .wrap{ max-width:820px; margin:0 auto; padding:14px; padding-bottom:28px; }
+    .wrap{ max-width:860px; margin:0 auto; padding:14px; padding-bottom:28px; }
     .title{ font-size:22px; font-weight:900; margin:6px 0 10px; display:flex; align-items:center; gap:10px; }
     .title .spacer{ flex:1; }
     .btn{ border:0; border-radius:10px; padding:10px 12px; font-weight:900; cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent; }
@@ -64,7 +64,7 @@
       padding:18px; z-index:9999;
     }
     .modal{
-      max-width:820px; margin:0 auto; background:#fff; border-radius:16px;
+      max-width:860px; margin:0 auto; background:#fff; border-radius:16px;
       border:1px solid var(--border); overflow:hidden;
     }
     .modalHeader{
@@ -74,20 +74,21 @@
     .modalHeader .spacer{ flex:1; }
     .modalBody{ padding:14px; font-size:14px; line-height:1.45; text-align:right; }
     .tileGrid{ display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-top:10px; }
-    .tile{
-      border:1px solid var(--border); border-radius:14px; padding:12px;
-      background:#fff; text-align:right;
-    }
+    .tile{ border:1px solid var(--border); border-radius:14px; padding:12px; background:#fff; text-align:right; }
     .tile .name{ font-weight:900; font-size:16px; margin-bottom:6px; }
     .tile .desc{ color:var(--muted); font-size:13px; margin-bottom:10px; }
-    .tile .row2{ display:flex; gap:8px; align-items:center; }
+    .tile .row2{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
     .badge{
       background:#fff7ed; border:1px solid #fdba74; color:#9a3412;
       padding:4px 8px; border-radius:999px; font-weight:900; font-size:12px;
     }
-    .activeBadge{
+    .ownedBadge{
       background:#ecfdf5; border:1px solid #10b981; color:#065f46;
       padding:4px 8px; border-radius:999px; font-weight:900; font-size:12px;
+    }
+    .danger{
+      background:#fee2e2; border:1px solid #ef4444; color:#7f1d1d;
+      padding:10px; border-radius:12px; font-weight:900;
     }
   </style>
 </head>
@@ -105,7 +106,7 @@
       <div class="pill coins" id="lblCoins">💰 10</div>
       <div class="pill streak" id="lblStreak">רצף: 0 🔥</div>
       <div class="spacer"></div>
-      <div class="pill" id="lblCentury">מאה: 2000–2099</div>
+      <div class="pill" id="lblPools">מאגרים פתוחים: 1900, 2000</div>
     </div>
 
     <div class="progressWrap" aria-label="timer">
@@ -140,7 +141,7 @@
     </div>
   </div>
 
-  <!-- CHEAT MODAL -->
+  <!-- CHEAT -->
   <div class="modalBackdrop" id="modalCheat">
     <div class="modal" role="dialog" aria-modal="true">
       <div class="modalHeader">
@@ -152,7 +153,7 @@
     </div>
   </div>
 
-  <!-- STORE MODAL -->
+  <!-- STORE -->
   <div class="modalBackdrop" id="modalStore">
     <div class="modal" role="dialog" aria-modal="true">
       <div class="modalHeader">
@@ -166,14 +167,23 @@
           <input id="usernameInput" placeholder="הכנס שם (למשל: roma)" />
           <button id="btnSaveUser" class="btn green" style="width:100%;">שמור</button>
         </div>
-        <div class="small" style="margin-top:6px;">השם נשמר מקומית בטלפון/דפדפן (לא נשלח לשום מקום).</div>
+        <div class="small" style="margin-top:6px;">השם נשמר מקומית (localStorage). לא נשלח לשום מקום.</div>
 
         <hr style="border:none;border-top:1px solid var(--border);margin:14px 0;" />
 
-        <div style="font-weight:900;margin-bottom:6px;">Century Packs (קונים פעם אחת)</div>
-        <div class="small">כל קנייה פותחת טווח שנים חדש לתרגול. אפשר לבחור “מאה פעילה”.</div>
+        <div style="font-weight:900;margin-bottom:6px;">Century Packs (מצב B: בריכת שנים)</div>
+        <div class="small">קנית מאה? היא נכנסת לבריכה והמשחק מתחיל להגריל גם ממנה.</div>
 
         <div class="tileGrid" id="storeGrid"></div>
+
+        <hr style="border:none;border-top:1px solid var(--border);margin:14px 0;" />
+
+        <div class="danger">
+          איפוס נתונים (אם משהו התבלגן): זה ימחק שם משתמש/כסף/קניות מהדפדפן הזה.
+          <div style="margin-top:10px;">
+            <button id="btnReset" class="btn dark">איפוס עכשיו</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -182,31 +192,27 @@
 /* =========================
    Storage (local only)
 ========================= */
-const STORAGE_KEY = "doomsday_master_profile_v1";
+const STORAGE_KEY = "doomsday_master_profile_v2";
 
-function loadProfile(){
-  try{
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw);
-  }catch(e){
-    return null;
-  }
+function safeJsonParse(s){
+  try { return JSON.parse(s); } catch { return null; }
 }
-function saveProfile(p){
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(p));
-}
+
 function defaultProfile(){
   return {
     username: "",
     coins: 10,
     streak: 0,
-    activeCentury: 2000,
-    ownedCenturies: { "2000": true } // default unlocked
+    ownedCenturies: { "1900": true, "2000": true } // default unlocked
   };
 }
-let profile = loadProfile() || defaultProfile();
-saveProfile(profile);
+
+let profile = safeJsonParse(localStorage.getItem(STORAGE_KEY)) || defaultProfile();
+localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
+
+function saveProfile(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
+}
 
 /* =========================
    Helpers (calendar)
@@ -256,12 +262,34 @@ function randInt(a,b){
 }
 
 /* =========================
+   Owned centuries (Mode B)
+========================= */
+function getOwnedCenturiesSorted(){
+  return Object.keys(profile.ownedCenturies || {})
+    .filter(k => profile.ownedCenturies[k])
+    .map(k => Number(k))
+    .filter(n => Number.isFinite(n))
+    .sort((a,b)=>a-b);
+}
+function pickYearFromOwnedCenturies(){
+  const owned = getOwnedCenturiesSorted();
+  if (owned.length === 0) return randInt(2000, 2099);
+  const c = owned[randInt(0, owned.length - 1)];
+  return randInt(c, c + 99);
+}
+function ownedLabel(){
+  const owned = getOwnedCenturiesSorted();
+  if (owned.length === 0) return "אין";
+  return owned.join(", ");
+}
+
+/* =========================
    UI refs
 ========================= */
 const lblUser = document.getElementById("lblUser");
 const lblCoins = document.getElementById("lblCoins");
 const lblStreak = document.getElementById("lblStreak");
-const lblCentury = document.getElementById("lblCentury");
+const lblPools = document.getElementById("lblPools");
 
 const progressBar = document.getElementById("progressBar");
 const modeSelect = document.getElementById("modeSelect");
@@ -284,24 +312,17 @@ const storeClose = document.getElementById("storeClose");
 const storeGrid = document.getElementById("storeGrid");
 const usernameInput = document.getElementById("usernameInput");
 const btnSaveUser = document.getElementById("btnSaveUser");
+const btnReset = document.getElementById("btnReset");
 
 /* =========================
    Store items
 ========================= */
 const STORE_CENTURIES = [
   { century: 1800, label: "1800–1899", price: 25 },
-  { century: 1900, label: "1900–1999", price: 25 },
+  { century: 1900, label: "1900–1999", price: 0  },
   { century: 2000, label: "2000–2099", price: 0  },
   { century: 2100, label: "2100–2199", price: 25 }
 ];
-
-function centuryRange(c){
-  return { start: c, end: c + 99 };
-}
-function activeRange(){
-  const c = profile.activeCentury;
-  return centuryRange(c);
-}
 
 /* =========================
    Game state
@@ -339,31 +360,36 @@ function renderCheatSheet(){
       שנה רגילה: 1/3, 2/28, 3/14, 4/4, 5/9, 6/6, 7/11, 8/8, 9/5, 10/10, 11/7, 12/12<br>
       שנה מעוברת: 1/4, 2/29 (השאר אותו דבר)
     </p>
-    <div class="small">הכל נשמר מקומית (localStorage). אין שרת.</div>
+    <div class="small">מצב B: קנית מאה → היא נכנסת לבריכה (אין “מאה פעילה”).</div>
   `;
 }
+
 function updateTop(){
   lblUser.textContent = profile.username ? `👤 ${profile.username}` : "👤 אורח";
   lblCoins.textContent = `💰 ${profile.coins}`;
   lblStreak.textContent = `רצף: ${profile.streak} 🔥`;
-  const r = activeRange();
-  lblCentury.textContent = `מאה: ${r.start}–${r.end}`;
-  btnHint.disabled = locked || profile.coins < 10;
-  if (profile.coins >= 10){
+  lblPools.textContent = `מאגרים פתוחים: ${ownedLabel()}`;
+
+  if (locked || profile.coins < 10){
+    btnHint.classList.add("disabled");
+    btnHint.textContent = profile.coins < 10 ? "אין כסף (10)" : "💡 רמז (10)";
+    btnHint.disabled = true;
+  } else {
     btnHint.classList.remove("disabled");
     btnHint.textContent = "💡 רמז (10)";
-  } else {
-    btnHint.classList.add("disabled");
-    btnHint.textContent = "אין כסף (10)";
+    btnHint.disabled = false;
   }
 }
+
 function setProgress(){
   const pct = Math.max(0, Math.min(1, timeLeft / ROUND_TIME));
   progressBar.style.width = (pct * 100).toFixed(2) + "%";
 }
+
 function stopTimer(){
   if (timerId){ clearInterval(timerId); timerId = null; }
 }
+
 function startTimer(){
   stopTimer();
   timeLeft = ROUND_TIME;
@@ -377,11 +403,13 @@ function startTimer(){
     }
   }, 1000);
 }
+
 function lockButtons(state){
   locked = state;
   daysGrid.querySelectorAll("button.dayBtn").forEach(b => b.disabled = state);
   updateTop();
 }
+
 function resetRoundUI(){
   feedbackBox.style.display = "none";
   feedbackBox.innerHTML = "";
@@ -399,24 +427,20 @@ function renderStore(){
   storeGrid.innerHTML = "";
 
   STORE_CENTURIES.forEach(item => {
-    const owned = !!profile.ownedCenturies[String(item.century)];
-    const active = profile.activeCentury === item.century;
-
+    const owned = !!(profile.ownedCenturies && profile.ownedCenturies[String(item.century)]);
     const tile = document.createElement("div");
     tile.className = "tile";
+
+    const ownedTag = owned ? `<span class="ownedBadge">פתוח</span>` : ``;
+    const priceTag = `<span class="badge">מחיר: ${item.price} 💰</span>`;
+
     tile.innerHTML = `
       <div class="name">${item.label}</div>
-      <div class="desc">פותח תרגול בטווח השנים של המאה הזאת.</div>
-      <div class="row2">
-        ${active ? `<span class="activeBadge">פעיל</span>` : ""}
-        <span class="badge">מחיר: ${item.price} 💰</span>
-      </div>
+      <div class="desc">פותח תרגול בטווח השנים של המאה הזאת (נכנס לבריכה).</div>
+      <div class="row2">${ownedTag}${priceTag}</div>
       <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
         <button class="btn ${owned ? "gray" : "dark"}" ${owned ? "disabled" : ""} data-buy="${item.century}">
-          ${owned ? "נקנה" : "קנה"}
-        </button>
-        <button class="btn ${owned ? "green" : "gray"}" ${owned ? "" : "disabled"} data-use="${item.century}">
-          השתמש
+          ${owned ? "כבר פתוח" : "קנה"}
         </button>
       </div>
     `;
@@ -424,53 +448,52 @@ function renderStore(){
   });
 
   storeGrid.querySelectorAll("button[data-buy]").forEach(b => {
-    b.addEventListener("click", () => {
-      const c = Number(b.getAttribute("data-buy"));
-      buyCentury(c);
-    });
-  });
-  storeGrid.querySelectorAll("button[data-use]").forEach(b => {
-    b.addEventListener("click", () => {
-      const c = Number(b.getAttribute("data-use"));
-      setActiveCentury(c);
-    });
+    b.addEventListener("click", () => buyCentury(Number(b.getAttribute("data-buy"))));
   });
 }
+
 function buyCentury(c){
   const item = STORE_CENTURIES.find(x => x.century === c);
   if (!item) return;
+
+  profile.ownedCenturies = profile.ownedCenturies || {};
   if (profile.ownedCenturies[String(c)]) return;
 
   if (profile.coins < item.price){
     alert("אין מספיק כסף 💰");
     return;
   }
+
   profile.coins -= item.price;
   profile.ownedCenturies[String(c)] = true;
-  saveProfile(profile);
+  saveProfile();
   updateTop();
   renderStore();
 }
-function setActiveCentury(c){
-  if (!profile.ownedCenturies[String(c)]) return;
-  profile.activeCentury = c;
-  saveProfile(profile);
-  updateTop();
-  renderStore();
-  profile.streak = 0;
-  saveProfile(profile);
-  startNewRound();
-}
+
+/* =========================
+   User save / reset
+========================= */
 btnSaveUser.addEventListener("click", () => {
   const name = (usernameInput.value || "").trim().slice(0, 18);
   profile.username = name;
-  saveProfile(profile);
+  saveProfile();
   updateTop();
   alert("נשמר ✅");
 });
 
+btnReset.addEventListener("click", () => {
+  if (!confirm("בטוח לאפס? זה ימחק שם/כסף/קניות במכשיר הזה.")) return;
+  localStorage.removeItem(STORAGE_KEY);
+  profile = defaultProfile();
+  saveProfile();
+  updateTop();
+  renderStore();
+  startNewRound();
+});
+
 /* =========================
-   Rounds (use active century)
+   Rounds
 ========================= */
 function buildDaysButtons(){
   daysGrid.innerHTML = "";
@@ -483,27 +506,12 @@ function buildDaysButtons(){
   }
 }
 
-function pickYearFromOwnedCenturies(){
-  const owned = Object.keys(profile.ownedCenturies)
-    .filter(k => profile.ownedCenturies[k])
-    .map(k => Number(k))
-    .sort((a,b)=>a-b);
-
-  if (owned.length === 0) return randInt(2000, 2099);
-
-  const c = owned[randInt(0, owned.length - 1)];
-  return randInt(c, c + 99);
-}
-
-}
-
 function startNewRound(){
   resetRoundUI();
   lockButtons(false);
 
   const mode = Number(modeSelect.value);
   const year = pickYearFromOwnedCenturies();
-
 
   if (mode === 0){
     const ans = doomsdayOfYear(year);
@@ -545,26 +553,26 @@ function useHint(){
   if (profile.coins < 10) return;
 
   profile.coins -= 10;
-  saveProfile(profile);
+  saveProfile();
   updateTop();
 
   hintBox.style.display = "block";
   const y = current.year;
 
   if (current.type === "year"){
-    const cen = centuryAnchorClassic(y);
     const yy = y % 100;
     const a = Math.floor(yy / 12);
     const b = yy % 12;
     const c = Math.floor(b / 4);
     const total = a + b + c;
+    const cenName = DISPLAY_NAMES[centuryAnchorClassic(y)];
 
     hintBox.innerHTML =
       `<b>Hint (Year ${y}):</b><br>` +
       `• yy=${yy} → a=${a}, b=${b}, c=${c}<br>` +
       `• add=(a+b+c) mod 7 = ${total % 7}<br>` +
-      `• century anchor = <b>${DISPLAY_NAMES[cen]}</b><br>` +
-      `<b>Task:</b> ${DISPLAY_NAMES[cen]} + ${total % 7} days = ?`;
+      `• century anchor = <b>${cenName}</b><br>` +
+      `<b>Task:</b> ${cenName} + ${total % 7} days = ?`;
     return;
   }
 
@@ -649,7 +657,7 @@ function checkAnswer(userIdx){
     profile.streak = 0;
     header = "❌ לא נכון";
   }
-  saveProfile(profile);
+  saveProfile();
   updateTop();
 
   feedbackBox.innerHTML = `<b>${header}</b><br><br>${detailedExplanation(correctIdx)}`;
@@ -666,7 +674,7 @@ function handleTimeout(){
   });
 
   profile.streak = 0;
-  saveProfile(profile);
+  saveProfile();
   updateTop();
 
   feedbackBox.innerHTML = `<b>⏱️ נגמר הזמן</b><br><br>${detailedExplanation(correctIdx)}`;
@@ -675,13 +683,14 @@ function handleTimeout(){
 }
 
 /* =========================
-   Wire events
+   Events
 ========================= */
 btnHint.addEventListener("click", useHint);
 btnNext.addEventListener("click", startNewRound);
+
 modeSelect.addEventListener("change", () => {
   profile.streak = 0;
-  saveProfile(profile);
+  saveProfile();
   updateTop();
   startNewRound();
 });
@@ -704,8 +713,8 @@ modalStore.addEventListener("click", (e) => { if (e.target === modalStore) modal
    Boot
 ========================= */
 buildDaysButtons();
-updateTop();
 renderCheatSheet();
+updateTop();
 startNewRound();
 </script>
 </body>
