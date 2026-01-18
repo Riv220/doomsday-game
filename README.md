@@ -483,9 +483,18 @@ function buildDaysButtons(){
   }
 }
 
-function pickYearInActiveCentury(){
-  const r = activeRange();
-  return randInt(r.start, r.end);
+function pickYearFromOwnedCenturies(){
+  const owned = Object.keys(profile.ownedCenturies)
+    .filter(k => profile.ownedCenturies[k])
+    .map(k => Number(k))
+    .sort((a,b)=>a-b);
+
+  if (owned.length === 0) return randInt(2000, 2099);
+
+  const c = owned[randInt(0, owned.length - 1)];
+  return randInt(c, c + 99);
+}
+
 }
 
 function startNewRound(){
@@ -493,7 +502,8 @@ function startNewRound(){
   lockButtons(false);
 
   const mode = Number(modeSelect.value);
-  const year = pickYearInActiveCentury();
+  const year = pickYearFromOwnedCenturies();
+
 
   if (mode === 0){
     const ans = doomsdayOfYear(year);
